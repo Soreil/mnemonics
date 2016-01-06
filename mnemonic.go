@@ -14,14 +14,14 @@ var mnemonicStarts [16]string
 
 //Bottom nibble
 var mnemonicEnds [16]string
-var saltLength int
+
+const saltLength = 40
+
 var salt string
 
 func init() {
-	//TODO(sjon): Should these be user settable?
 	mnemonicStarts = [16]string{"", "k", "s", "t", "d", "n", "h", "b", "p", "m", "f", "r", "g", "z", "l", "ch"}
 	mnemonicEnds = [16]string{"a", "i", "u", "e", "o", "a", "i", "u", "e", "o", "ya", "yi", "yu", "ye", "yo", "'"}
-	SetSaltLength(40)
 	err := SetSalt("LALALALALALALALALALALALALALALALALALALALA")
 	if err != nil {
 		panic(err)
@@ -65,12 +65,8 @@ func Mnemonic(addr string) (string, error) {
 
 func SetSalt(s string) error {
 	if len([]byte(s)) < saltLength {
-		return errors.New(fmt.Sprintf("Salt length %d smaller than recommended %d\n", len([]byte(s)), saltLength))
+		return errors.New(fmt.Sprintf("Salt length %d not the same as recommended %d\n", len([]byte(s)), saltLength))
 	}
 	salt = s
 	return nil
-}
-
-func SetSaltLength(n int) {
-	saltLength = n
 }
