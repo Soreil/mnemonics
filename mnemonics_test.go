@@ -1,4 +1,4 @@
-package mnemonics
+package mnemonic
 
 import "testing"
 
@@ -39,19 +39,18 @@ func TestSaltLength(T *testing.T) {
 func TestIp(T *testing.T) {
 	testIps := []struct {
 		ip    string
-		t     ipType
 		valid bool
 	}{
-		{"Meguca", other, false},
-		{"257.0.0.0", other, false},
-		{"0.0.0.257", other, false},
-		{"0.0.10.0", ipV4, true},
-		{"0.0.0.0", ipV4, true},
-		{"255.255.255.255", ipV4, true},
-		{"10.20.100", other, false},
+		{"Meguca", false},
+		{"257.0.0.0", false},
+		{"0.0.0.257", false},
+		{"0.0.10.0", true},
+		{"0.0.0.0", true},
+		{"255.255.255.255", true},
+		{"10.20.100", false},
 	}
 	for _, v := range testIps {
-		ip, _, err := ip(v.ip)
+		ip, err := ip(v.ip)
 		if v.valid {
 			if err != nil {
 				T.Fatal(err, ip)
@@ -71,33 +70,49 @@ func TestMnemonic(T *testing.T) {
 		input    string
 		valid    bool
 	}{
-		{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", true},  //Original
-		{"hewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false},  //Wrong salt
-		{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false}, //Wrong expected
-		{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.8", false},  //Wrong IP
-		{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-			"p'huzityi",
-			"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-			true}, //ipv6 sample
-		{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-			"p'huzityi",
-			"2001:0db8:85a3:0000:0000:8a2e:a370:7334",
-			false}, //Wrong IPv6
-		{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-			"p'huzityw",
-			"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-			false}, //Wrong mnemonic
-		{"osaosifjwoiwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-			"p'huzityi",
-			"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-			false}, //Wrong Salt
-		{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-			"p'huzityi",
-			"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-			true}, //Wrong expected
+		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", true},  //Original
+		//{"hewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false},  //Wrong salt
+		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false}, //Wrong expected
+		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.8", false},  //Wrong IP
+		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
+		//	"p'huzityi",
+		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		//	true}, //ipv6 sample
+		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
+		//	"p'huzityi",
+		//	"2001:0db8:85a3:0000:0000:8a2e:a370:7334",
+		//	false}, //Wrong IPv6
+		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
+		//	"p'huzityw",
+		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		//	false}, //Wrong mnemonic
+		//{"osaosifjwoiwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
+		//	"p'huzityi",
+		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		//	false}, //Wrong Salt
+		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
+		//	"p'huzityi",
+		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		//	true}, //Wrong expected
+		//{"LALALALALALALALALALALALALALALALALALALALA",
+		//	"chidyietya",
+		//	"194.213.253.159",
+		//	false}, //Meguca test EXTERNAL ADDRESS
+		//{"LALALALALALALALALALALALALALALALALALALALA",
+		//	"chidyietya",
+		//	"127.0.0.1",
+		//	true}, //Meguca test INTERNAL ADDRESS
+		{"1test2test3test4test5test6test7test8test",
+			"pidugufi", //ch'ridyama on C++
+			"127.0.0.1",
+			true},
 	}
 	for _, v := range testMnemonics {
-		SetSalt(v.salt)
+		SetSaltLength(40)
+		err := SetSalt(v.salt)
+		if err != nil {
+			panic(err)
+		}
 		res, err := Mnemonic(v.input)
 		if v.valid && err == nil {
 			if v.expected == res {
@@ -110,5 +125,6 @@ func TestMnemonic(T *testing.T) {
 				T.Fatal(v, res, err)
 			}
 		}
+		T.Log(res)
 	}
 }

@@ -1,4 +1,5 @@
-package mnemonics
+//Package mnemonics makes textual representations out of IP adresses
+package mnemonic
 
 import (
 	"crypto/sha1"
@@ -8,28 +9,10 @@ import (
 	"strconv"
 )
 
-type ipType int
-
-const (
-	ipV4 ipType = iota
-	ipV6
-	other
-)
-
-type ipError string
-
-func (e ipError) Error() string {
-	return string(e)
-}
-
-const (
-	invalidIpV4 ipError = "Invalid IPv4 address"
-	invalidIpV6 ipError = "Invalid IPv6 address"
-	invalidIp   ipError = "Invalid IP address"
-	notIp       ipError = "Not an IP address"
-)
-
+//Top nibble
 var mnemonicStarts [16]string
+
+//Bottom nibble
 var mnemonicEnds [16]string
 var saltLength int
 var salt string
@@ -39,38 +22,28 @@ func init() {
 	mnemonicStarts = [16]string{"", "k", "s", "t", "d", "n", "h", "b", "p", "m", "f", "r", "g", "z", "l", "ch"}
 	mnemonicEnds = [16]string{"a", "i", "u", "e", "o", "a", "i", "u", "e", "o", "ya", "yi", "yu", "ye", "yo", "'"}
 	SetSaltLength(40)
-	err := SetSalt(`jsdojfsoiajfoicwcoinweoijfoiwfdjwoifjwoifjf;akfj;pweiuwruw;eour;wajf;lksjflskj`)
+	err := SetSalt("LALALALALALALALALALALALALALALALALALALALA")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ip(s string) (net.IP, ipType, error) {
+func ip(s string) (net.IP, error) {
 	ip := net.ParseIP(s)
 	if ip == nil {
-		return nil, other, invalidIp
+		return nil, errors.New("Not a valid IP adres")
 	}
 	if ip := ip.To4(); ip != nil {
-		return ip, ipV4, nil
+		return ip, nil
 	}
 	if ip := ip.To16(); ip != nil {
-		return ip, ipV6, nil
+		return ip, nil
 	}
-	return nil, other, invalidIp
-}
-
-func byteToHex(hashpart []byte, max int) string {
-	var out []byte
-	for i := 0; i < max/2; i++ {
-		c := hashpart[i]
-		out = strconv.AppendInt(out, int64(c>>4), 16)
-		out = strconv.AppendInt(out, int64(c&15), 16)
-	}
-	return string(out)
+	return nil, errors.New("Not a valid IP adres")
 }
 
 func Mnemonic(addr string) (string, error) {
-	ip, _, err := ip(addr)
+	ip, err := ip(addr)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +52,8 @@ func Mnemonic(addr string) (string, error) {
 
 	var result string
 	for i := 0; i < 4; i++ {
-		part := byteToHex(out[i*5:], 8)
+		//This takes 4 bytes instead of 5, it looks that way in the C++!
+		part := fmt.Sprintf("%x", out[i*5:((i+1)*5)-1])
 		val, err := strconv.ParseUint(part, 16, 64)
 		if err != nil {
 			return "", err
