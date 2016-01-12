@@ -1,6 +1,10 @@
 package mnemonic
 
-import "testing"
+import (
+	"io/ioutil"
+	"strings"
+	"testing"
+)
 
 func init() {
 	err := SetSalt(`heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh`)
@@ -12,14 +16,12 @@ func init() {
 func TestSaltLength(T *testing.T) {
 	salts := []struct {
 		salt     string
-		length   int
 		expected bool
 	}{
-		{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", 40, true},
-		{"wuhfeiuhellorewrhwiuehrwiuhiuweh", 40, false},
+		{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", true},
+		{"wuhfeiuhellorewrhwiuehrwiuhiuweh", false},
 	}
 	for _, v := range salts {
-		SetSaltLength(v.length)
 		err := SetSalt(v.salt)
 		if err != nil {
 			if v.expected == false {
@@ -50,81 +52,70 @@ func TestIp(T *testing.T) {
 		{"10.20.100", false},
 	}
 	for _, v := range testIps {
-		ip, err := ip(v.ip)
+		err := validIp(v.ip)
 		if v.valid {
 			if err != nil {
-				T.Fatal(err, ip)
+				T.Fatal(err, v.ip)
 			}
 		} else {
 			if err == nil {
-				T.Fatal(err, ip)
+				T.Fatal(err, v.ip)
 			}
 		}
 	}
 }
 
+type inputCase struct {
+	expected string
+	input    string
+	valid    bool
+}
+
 func TestMnemonic(T *testing.T) {
-	testMnemonics := []struct {
-		salt     string
-		expected string
-		input    string
-		valid    bool
-	}{
-		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", true},  //Original
-		//{"hewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false},  //Wrong salt
-		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.80", false}, //Wrong expected
-		//{"heewiuhfiuwhfiwuhfeiuhellorewrhwiuehrwiuhiuweh", "pisimomi", "100.20.100.8", false},  //Wrong IP
-		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-		//	"p'huzityi",
-		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		//	true}, //ipv6 sample
-		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-		//	"p'huzityi",
-		//	"2001:0db8:85a3:0000:0000:8a2e:a370:7334",
-		//	false}, //Wrong IPv6
-		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-		//	"p'huzityw",
-		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		//	false}, //Wrong mnemonic
-		//{"osaosifjwoiwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-		//	"p'huzityi",
-		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		//	false}, //Wrong Salt
-		//{"osaosifjwoijwaoijfoiwajfoiwjfoiwjfoiwjfoiwejfwoeijf",
-		//	"p'huzityi",
-		//	"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		//	true}, //Wrong expected
-		//{"LALALALALALALALALALALALALALALALALALALALA",
-		//	"chidyietya",
-		//	"194.213.253.159",
-		//	false}, //Meguca test EXTERNAL ADDRESS
-		//{"LALALALALALALALALALALALALALALALALALALALA",
-		//	"chidyietya",
-		//	"127.0.0.1",
-		//	true}, //Meguca test INTERNAL ADDRESS
-		{"1test2test3test4test5test6test7test8test",
-			"pidugufi", //ch'ridyama on C++
-			"127.0.0.1",
-			true},
+	testMnemonics := struct {
+		salt  string
+		cases []inputCase
+	}{salt: "r088PUX0qpUjhUyZby6e4pQcDh3zzUQUpeLOy7Hb"}
+
+	err := SetSalt(testMnemonics.salt)
+	if err != nil {
+		panic(err)
 	}
-	for _, v := range testMnemonics {
-		SetSaltLength(40)
-		err := SetSalt(v.salt)
+	testMnemonics.cases = append(testMnemonics.cases, readCases("mnemonics_out")...)
+
+	for _, test := range testMnemonics.cases {
+		res, err := Mnemonic(test.input)
+		if test.valid && err == nil {
+			if test.expected == res {
+			} else {
+				T.Fatalf("%v, %s, %v\n", test, res, err)
+			}
+		} else if !test.valid && err != nil {
+			if test.expected == res {
+			} else {
+				T.Fatalf("%v, %s, %v\n", test, res, err)
+			}
+		}
+		T.Log(test)
+	}
+}
+
+func readCases(fileName string) (cases []inputCase) {
+	file, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+	lines := strings.Split(string(file), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		err := validIp(fields[0])
 		if err != nil {
 			panic(err)
 		}
-		res, err := Mnemonic(v.input)
-		if v.valid && err == nil {
-			if v.expected == res {
-			} else {
-				T.Fatal(v, res, err)
-			}
-		} else if !v.valid && err != nil {
-			if v.expected == res {
-			} else {
-				T.Fatal(v, res, err)
-			}
-		}
-		T.Log(res)
+		cases = append(cases, inputCase{expected: fields[1], input: fields[0], valid: true})
 	}
+	return
 }

@@ -27,26 +27,26 @@ func init() {
 	}
 }
 
-func ip(s string) (net.IP, error) {
+func validIp(s string) error {
 	ip := net.ParseIP(s)
 	if ip == nil {
-		return nil, errors.New("Not a valid IP adres")
+		return errors.New("Not a valid IP adres")
 	}
 	if ip := ip.To4(); ip != nil {
-		return ip, nil
+		return nil
 	}
 	if ip := ip.To16(); ip != nil {
-		return ip, nil
+		return nil
 	}
-	return nil, errors.New("Not a valid IP adres")
+	return errors.New("Not a valid IP adres")
 }
 
 func Mnemonic(addr string) (string, error) {
-	ip, err := ip(addr)
+	err := validIp(addr)
 	if err != nil {
 		return "", err
 	}
-	salted := ip.String() + salt
+	salted := addr + salt
 	out := sha1.Sum([]byte(salted))
 
 	var result string
