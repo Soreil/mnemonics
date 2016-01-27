@@ -27,10 +27,17 @@ func init() {
 	}
 }
 
+// InvalidIPError indicates that the passed IP address is of invalid format
+type InvalidIPError struct{ s string }
+
+func (e InvalidIPError) Error() string {
+	return "Not a valid IP address: " + e.s
+}
+
 func validIp(s string) error {
 	ip := net.ParseIP(s)
 	if ip == nil {
-		return errors.New("Not a valid IP adres")
+		return InvalidIPError{s}
 	}
 	if ip := ip.To4(); ip != nil {
 		return nil
@@ -38,7 +45,7 @@ func validIp(s string) error {
 	if ip := ip.To16(); ip != nil {
 		return nil
 	}
-	return errors.New("Not a valid IP adres")
+	return InvalidIPError{s}
 }
 
 func Mnemonic(addr string) (string, error) {
